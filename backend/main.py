@@ -1,11 +1,11 @@
 """
 AI模型价格比价平台 - Backend API
-Fetches model pricing data from llm-oracle and serves it with caching.
+Fetches model pricing data from llm-prices.com and serves it with caching.
 """
 
 import time
 import logging
-from typing import Optional
+from typing import Any
 
 from pathlib import Path
 
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI模型价格比价平台 API", version="1.0.0")
 
-# CORS: allow all origins for development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,15 +29,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Data source ---
-PRICE_API = "https://oracle.weiseer.com/catalog.json"
+# --- Data source: llm-prices.com ---
+CURRENT_PRICE_API = "https://www.llm-prices.com/current-v1.json"
+HISTORICAL_PRICE_API = "https://www.llm-prices.com/historical-v1.json"
 
 # --- Cache ---
 CACHE_TTL = 30 * 60  # 30 minutes in seconds
-_cache: dict = {"data": None, "timestamp": 0}
+_current_cache: dict[str, Any] = {"data": None, "timestamp": 0}
+_historical_cache: dict[str, Any] = {"data": None, "timestamp": 0}
 
-
-# --- Provider display names ---
+# --- Provider display names (keys match new llm-prices.com vendor field) ---
 PROVIDER_NAMES: dict[str, str] = {
     "openai": "OpenAI",
     "anthropic": "Anthropic",
@@ -46,6 +46,7 @@ PROVIDER_NAMES: dict[str, str] = {
     "mistral": "Mistral AI",
     "cohere": "Cohere",
     "meta": "Meta",
+    "meta-ai": "Meta",
     "deepseek": "DeepSeek",
     "xai": "xAI",
     "groq": "Groq",
@@ -59,6 +60,7 @@ PROVIDER_NAMES: dict[str, str] = {
     "zhipu": "Zhipu AI",
     "baidu": "Baidu",
     "moonshot": "Moonshot AI",
+    "moonshot-ai": "Moonshot AI",
     "minimax": "MiniMax",
     "01.ai": "01.AI",
     "qwen": "Qwen",
@@ -68,13 +70,19 @@ PROVIDER_NAMES: dict[str, str] = {
 }
 
 
-def format_provider(raw_provider: str) -> str:
-    """Format provider name with proper casing."""
-    key = (raw_provider or "").lower().strip()
-    return PROVIDER_NAMES.get(key, raw_provider or "Unknown")
+def format_provider(raw_vendor: str) -> str:
+    """Format vendor name with proper casing."""
+    key = (raw_vendor or "").lower().strip()
+    if key in PROVIDER_NAMES:
+        return PROVIDER_NAMES[key]
+    # Fallback: try prefix match (e.g. "moonshot-ai" can fall back to "moonshot" if mapping missing)
+    for k, v in PROVIDER_NAMES.items():
+        if key.startswith(k) or k.startswith(key):
+            return v
+    return raw_vendor or "Unknown"
 
 
-# --- Fallback URLs by provider ---
+# --- Fallback URLs by vendor/provider ---
 FALLBACK_URLS: dict[str, str] = {
     "openai": "https://openai.com/pricing",
     "anthropic": "https://www.anthropic.com/pricing",
@@ -102,108 +110,180 @@ FALLBACK_URLS: dict[str, str] = {
 }
 
 
-def resolve_url(model: dict) -> str:
-    """Resolve the pricing URL for a model, with fallback logic."""
-    # Primary: use pricing_source_url from llm-oracle
-    url = model.get("pricing_source_url") or model.get("url") or ""
-    if url.strip():
-        return url.strip()
-
-    # Fallback: match by provider name
-    provider = (model.get("provider") or "").lower()
+def resolve_url(vendor: str) -> str:
+    """Resolve the pricing URL for a vendor by prefix match."""
+    vendor_key = (vendor or "").lower().replace("_", "-")
     for key, fallback_url in FALLBACK_URLS.items():
-        if key in provider:
+        if key in vendor_key or vendor_key in key:
             return fallback_url
     return ""
 
 
-def extract_capabilities(cap_obj) -> list[str]:
-    """Extract capability names from llm-oracle capabilities object."""
-    if isinstance(cap_obj, dict):
-        return sorted([k for k, v in cap_obj.items() if v])
-    if isinstance(cap_obj, list):
-        return cap_obj
-    return []
+def _round_price(v: Any) -> float | None:
+    if isinstance(v, (int, float)):
+        return round(float(v), 4)
+    return None
 
 
-def normalize_prices(models: list[dict]) -> list[dict]:
-    """
-    Normalize model data for the frontend.
-    - Prices are already per 1M tokens USD from llm-oracle
-    - Extract capabilities from object to array
-    - Resolve pricing URLs
-    """
-    normalized = []
-    for m in models:
-        input_price = m.get("input_price")
-        output_price = m.get("output_price")
+def normalize_current(entry: dict) -> dict:
+    """Normalize a single current-prices entry for the frontend."""
+    vendor = entry.get("vendor") or ""
+    input_price = _round_price(entry.get("input"))
+    output_price = _round_price(entry.get("output"))
+    cached_input = _round_price(entry.get("input_cached"))
 
-        normalized.append({
-            "model_id": m.get("model_id", "Unknown"),
-            "display_name": m.get("display_name", m.get("model_id", "Unknown")),
-            "provider": format_provider(m.get("provider", "")),
-            "family": m.get("family", ""),
-            "input_price": round(input_price, 4) if isinstance(input_price, (int, float)) else None,
-            "output_price": round(output_price, 4) if isinstance(output_price, (int, float)) else None,
-            "context_window": m.get("context_window"),
-            "max_output_tokens": m.get("max_output_tokens"),
-            "url": resolve_url(m),
-            "capabilities": extract_capabilities(m.get("capabilities")),
-            "availability_status": m.get("availability_status", ""),
-        })
-    return normalized
+    return {
+        "model_id": entry.get("id", "Unknown"),
+        "display_name": entry.get("name") or entry.get("id", "Unknown"),
+        "provider": format_provider(vendor),
+        "vendor": vendor,
+        "family": entry.get("family", ""),
+        "input_price": input_price,
+        "output_price": output_price,
+        "cached_input_price": cached_input,
+        "context_window": None,
+        "max_output_tokens": None,
+        "url": resolve_url(vendor),
+        "capabilities": [],
+        "availability_status": "",
+    }
 
 
-async def fetch_from_oracle() -> dict:
-    """Fetch raw catalog data from llm-oracle API."""
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(PRICE_API)
+def normalize_historical(entry: dict) -> dict:
+    """Normalize a single historical-prices entry."""
+    base = normalize_current(entry)
+    base["from_date"] = entry.get("from_date")
+    base["to_date"] = entry.get("to_date")
+    return base
+
+
+async def fetch_json(url: str, timeout: float = 15.0) -> dict:
+    """Fetch a JSON payload via HTTP with timeout."""
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        resp = await client.get(url)
         resp.raise_for_status()
         return resp.json()
 
 
-@app.get("/api/prices")
-async def get_prices():
-    """
-    Returns model pricing data, cached for 30 minutes.
-    Response: { data: [...], as_of: "...", count: N, cached: bool }
-    """
-    global _cache
-    now = time.time()
+# ------------------ Current prices ------------------
 
-    # Return cached data if still valid
-    if _cache["data"] is not None and (now - _cache["timestamp"]) < CACHE_TTL:
-        logger.info("Serving from cache")
-        return {**_cache["data"], "cached": True}
-
-    try:
-        raw = await fetch_from_oracle()
-    except Exception as e:
-        logger.error(f"Failed to fetch from llm-oracle: {e}")
-        # If cache exists (even if expired), serve stale data
-        if _cache["data"] is not None:
-            logger.warning("Serving stale cache due to fetch failure")
-            return {**_cache["data"], "cached": True, "stale": True}
-        raise HTTPException(status_code=502, detail="无法获取价格数据，请稍后重试。")
-
-    models = normalize_prices(raw.get("models", []))
-    result = {
+def _build_current_result(raw: dict) -> dict:
+    entries = raw.get("prices", []) or []
+    models = [normalize_current(e) for e in entries]
+    return {
         "data": models,
-        "as_of": raw.get("as_of", ""),
+        "as_of": raw.get("updated_at", ""),
         "count": len(models),
+        "source": "llm-prices.com/current-v1.json",
         "cached": False,
         "stale": False,
     }
-    _cache["data"] = result
-    _cache["timestamp"] = now
-    logger.info(f"Fetched {len(models)} models from llm-oracle")
+
+
+async def _load_current(force: bool = False) -> dict:
+    """Load current prices with TTL cache and stale-on-failure fallback."""
+    global _current_cache
+    now = time.time()
+
+    if not force and _current_cache["data"] is not None and (now - _current_cache["timestamp"]) < CACHE_TTL:
+        logger.info("Serving current prices from cache")
+        return {**_current_cache["data"], "cached": True}
+
+    try:
+        raw = await fetch_json(CURRENT_PRICE_API)
+    except Exception as e:
+        logger.error(f"Failed to fetch current prices: {e}")
+        if _current_cache["data"] is not None:
+            logger.warning("Serving stale current cache due to fetch failure")
+            return {**_current_cache["data"], "cached": True, "stale": True}
+        raise HTTPException(status_code=502, detail="无法获取价格数据，请稍后重试。")
+
+    result = _build_current_result(raw)
+    _current_cache["data"] = result
+    _current_cache["timestamp"] = now
+    logger.info(f"Fetched {result['count']} current models from llm-prices.com")
     return result
+
+
+@app.get("/api/prices")
+async def get_prices(force_refresh: bool = False):
+    """
+    Returns current model pricing data. Cached for 30 minutes.
+    Query param `force_refresh=true` bypasses the cache.
+    """
+    return await _load_current(force=force_refresh)
+
+
+# ------------------ Historical prices ------------------
+
+def _build_historical_result(raw: dict) -> dict:
+    entries = raw.get("prices", []) or []
+    rows = [normalize_historical(e) for e in entries]
+    # Group by model id for convenience on the consumer side
+    by_model: dict[str, list[dict]] = {}
+    for r in rows:
+        by_model.setdefault(r["model_id"], []).append(r)
+    return {
+        "data": rows,
+        "by_model": by_model,
+        "count": len(rows),
+        "unique_models": len(by_model),
+        "source": "llm-prices.com/historical-v1.json",
+        "cached": False,
+        "stale": False,
+    }
+
+
+async def _load_historical(force: bool = False) -> dict:
+    global _historical_cache
+    now = time.time()
+
+    if not force and _historical_cache["data"] is not None and (now - _historical_cache["timestamp"]) < CACHE_TTL:
+        logger.info("Serving historical prices from cache")
+        return {**_historical_cache["data"], "cached": True}
+
+    try:
+        raw = await fetch_json(HISTORICAL_PRICE_API)
+    except Exception as e:
+        logger.error(f"Failed to fetch historical prices: {e}")
+        if _historical_cache["data"] is not None:
+            logger.warning("Serving stale historical cache due to fetch failure")
+            return {**_historical_cache["data"], "cached": True, "stale": True}
+        raise HTTPException(status_code=502, detail="无法获取历史价格数据，请稍后重试。")
+
+    result = _build_historical_result(raw)
+    _historical_cache["data"] = result
+    _historical_cache["timestamp"] = now
+    logger.info(
+        f"Fetched {result['count']} historical rows ({result['unique_models']} unique models) from llm-prices.com"
+    )
+    return result
+
+
+@app.get("/api/prices/historical")
+async def get_historical_prices(force_refresh: bool = False):
+    """
+    Returns historical pricing data (all recorded price changes).
+    - `data`: flat list of all rows
+    - `by_model`: dict keyed by model_id of rows per model
+    Each row has `from_date`/`to_date` (ISO date or null) indicating the
+    period for which those prices apply.
+    """
+    return await _load_historical(force=force_refresh)
 
 
 @app.get("/api/health")
 async def health():
     """Health check endpoint."""
-    return {"status": "ok", "timestamp": time.time()}
+    now = time.time()
+    cur_age = None if _current_cache["timestamp"] == 0 else round(now - _current_cache["timestamp"])
+    hist_age = None if _historical_cache["timestamp"] == 0 else round(now - _historical_cache["timestamp"])
+    return {
+        "status": "ok",
+        "timestamp": now,
+        "current_cache_age_seconds": cur_age,
+        "historical_cache_age_seconds": hist_age,
+    }
 
 
 # --- Serve frontend static files ---
