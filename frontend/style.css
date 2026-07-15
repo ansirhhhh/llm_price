@@ -1,0 +1,499 @@
+/* ============================================================
+   AI模型价格比价平台 - Styles
+   ============================================================ */
+
+/* --- Reset & Base --- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --color-bg: #f8f9fa;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+    --color-text: #1a202c;
+    --color-text-secondary: #64748b;
+    --color-primary: #0070f3;
+    --color-primary-hover: #0051a2;
+    --color-primary-light: #e8f4fd;
+    --color-warning: #f59e0b;
+    --color-warning-bg: #fffbeb;
+    --color-success: #10b981;
+    --color-free: #ecfdf5;
+    --color-free-text: #059669;
+    --radius: 8px;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --transition: 150ms ease;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Noto Sans SC", sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* --- Header --- */
+.header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #fff;
+    padding: 32px 0;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.logo {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+}
+.subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* --- Container --- */
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+    flex: 1;
+    width: 100%;
+}
+
+/* --- Status Bar --- */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+.status-bar strong {
+    color: var(--color-text);
+}
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+}
+.badge-warning {
+    background: var(--color-warning-bg);
+    color: #b45309;
+}
+
+/* --- Toolbar --- */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+.toolbar-right {
+    display: flex;
+    gap: 8px;
+}
+
+/* Search */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 14px;
+    pointer-events: none;
+}
+.search-input {
+    width: 280px;
+    padding: 9px 36px 9px 36px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--color-surface);
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+}
+.search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+.search-input::placeholder {
+    color: #94a3b8;
+}
+.search-clear {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: none;
+    line-height: 1;
+}
+.search-clear:hover {
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+.search-clear.visible {
+    display: block;
+}
+
+/* Filter Select */
+.filter-select {
+    padding: 9px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--color-surface);
+    cursor: pointer;
+    outline: none;
+    min-width: 140px;
+}
+.filter-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+
+/* Free only checkbox */
+.free-only-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.free-only-label input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    white-space: nowrap;
+}
+.btn:active {
+    transform: scale(0.97);
+}
+.btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: var(--color-primary-hover);
+}
+.btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background var(--transition);
+    white-space: nowrap;
+}
+.btn-link:hover {
+    background: var(--color-primary-hover);
+    text-decoration: none;
+}
+.btn-link-disabled {
+    background: #cbd5e1;
+    color: #94a3b8;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* --- Table --- */
+.table-wrapper {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+#price-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    table-layout: auto;
+}
+#price-table thead {
+    background: #f1f5f9;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+#price-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    user-select: none;
+}
+#price-table th.sortable {
+    cursor: pointer;
+    transition: color var(--transition);
+}
+#price-table th.sortable:hover {
+    color: var(--color-primary);
+}
+#price-table th.sorted {
+    color: var(--color-primary);
+}
+.sort-arrow {
+    font-size: 10px;
+    margin-left: 2px;
+}
+#price-table th.sorted-asc .sort-arrow::after {
+    content: " ▲";
+}
+#price-table th.sorted-desc .sort-arrow::after {
+    content: " ▼";
+}
+#price-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+#price-table tbody tr {
+    transition: background var(--transition);
+}
+#price-table tbody tr:hover {
+    background: var(--color-primary-light);
+}
+#price-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Model name */
+.model-name {
+    font-weight: 600;
+    color: var(--color-text);
+    word-break: break-word;
+}
+
+/* Provider badge */
+.provider-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* Price cells */
+.col-price, .col-context {
+    text-align: right !important;
+    white-space: nowrap;
+}
+.col-context {
+    text-align: right !important;
+}
+
+.price-free {
+    color: var(--color-free-text);
+    font-weight: 600;
+}
+.price-paid {
+    font-variant-numeric: tabular-nums;
+    font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+.price-na {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Context window */
+.context-value {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Free badge */
+.free-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--color-free);
+    color: var(--color-free-text);
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* Capabilities tags */
+.capabilities {
+    display: none;
+}
+
+/* --- States --- */
+.empty-state, .loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-secondary);
+}
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+.empty-state h3 {
+    font-size: 18px;
+    color: var(--color-text);
+    margin-bottom: 6px;
+}
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+.loading-state p {
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+/* Spinner */
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Footer --- */
+.footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border);
+    margin-top: 40px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .header {
+        padding: 20px 0;
+    }
+    .logo {
+        font-size: 22px;
+    }
+    .container {
+        padding: 12px;
+    }
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .toolbar-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-input {
+        width: 100%;
+    }
+    .search-box {
+        width: 100%;
+    }
+    #price-table {
+        font-size: 12px;
+    }
+    #price-table th,
+    #price-table td {
+        padding: 8px 10px;
+    }
+    .btn-link {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Hide context window column on small screens */
+    .col-context {
+        display: none;
+    }
+    #price-table th:nth-child(5),
+    #price-table td:nth-child(5) {
+        display: none;
+    }
+    /* Make the table scrollable on mobile */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
