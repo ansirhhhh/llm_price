@@ -107,6 +107,8 @@ FALLBACK_URLS: dict[str, str] = {
     "01.ai": "https://platform.01.ai/pricing",
     "qwen": "https://www.alibabacloud.com/product/tongyi/pricing",
     "stepfun": "https://platform.stepfun.com/pricing",
+    "amazon": "https://aws.amazon.com/bedrock/pricing/",
+    "nvidia": "https://www.nvidia.com/en-us/ai-data-science/products/nim/#pricing",
 }
 
 
